@@ -31,7 +31,7 @@
                 </div>
                 <ul class="nav-menu" id="main-nav">
                     <li class="nav-item">
-                        <a href="#" class="nav-link active">
+                        <a href="{% url 'index' %}" class="nav-link">
                             <svg class="nav-icon" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                             </svg>
@@ -119,20 +119,6 @@
             menu.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
         }
-
-        // Add click handlers for nav links
-        link.addEventListener('click', function(e) {
-            // Remove active class from all links
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            
-            // Add active class to clicked link
-            this.classList.add('active');
-            
-            // Allow navigation for links with href
-            if (this.getAttribute('href') === '#') {
-                e.preventDefault();
-            }
-        });
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
