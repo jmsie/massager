@@ -1,10 +1,32 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Control Panel</title>
-</head>
-<body>
-    <h1>Control Panel</h1>
-    <p>This is the control panel.!!</p>
-</body>
-</html>
+{% extends 'panel/base.html' %}
+
+{% block title %}Welcome to the Dashboard{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Welcome Back!!!</h1>
+    <p>This is your beautiful dashboard with a modern glassmorphism design</p>
+</div>
+
+<div class="content-grid">
+    <div class="card">
+        <h3>Modern Design</h3>
+        <p>This template features a beautiful glassmorphism effect with smooth animations and responsive design that works perfectly on all devices.</p>
+    </div>
+
+    <div class="card">
+        <h3>Easy Customization</h3>
+        <p>Simply modify the navigation links in the sidebar and add your own content. The design is fully customizable and easy to extend.</p>
+    </div>
+
+    <div class="card">
+        <h3>Responsive Layout</h3>
+        <p>The sidebar automatically adapts to mobile devices with a toggle button, ensuring your site looks great on all screen sizes.</p>
+    </div>
+
+    <div class="card">
+        <h3>Smooth Interactions</h3>
+        <p>Hover effects, transitions, and micro-animations create an engaging user experience that feels modern and polished.</p>
+    </div>
+</div>
+{% endblock %}
