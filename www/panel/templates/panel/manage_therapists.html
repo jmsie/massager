@@ -1,0 +1,29 @@
+{% extends 'panel/base.html' %}
+
+{% block title %}Manage Therapists{% endblock %}
+
+{% block content %}
+<h1>Manage Therapists</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Specialization</th>
+            <th>Phone</th>
+            <th>Line ID</th>
+            <th>Nick Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for therapist in therapists %}
+        <tr>
+            <td>{{ therapist.name }}</td>
+            <td>{{ therapist.specialization.all|join:", " }}</td>
+            <td>{{ therapist.phone }}</td>
+            <td>{{ therapist.line_id }}</td>
+            <td>{{ therapist.nick_name }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
