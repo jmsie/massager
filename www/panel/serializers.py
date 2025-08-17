@@ -47,12 +47,17 @@ class ServiceSurveySerializer(serializers.ModelSerializer):
         return value
 
     def validate_therapist(self, value):
-        """驗證師傅是否屬於當前店家且未被刪除"""
+        """驗證師傅狀態"""
+        if value.is_deleted:
+            raise serializers.ValidationError("師傅已被刪除")
+        if not value.enabled:
+            raise serializers.ValidationError("師傅未啟用")
+            
+        # 如果是已登入用戶，驗證師傅是否屬於當前店家
         request = self.context.get('request')
-        if request and hasattr(request, 'user'):
+        if request and request.user.is_authenticated:
             store = getattr(request.user, "store", None)
             if store and value.store != store:
                 raise serializers.ValidationError("師傅不屬於您的店家")
-            if value.is_deleted:
-                raise serializers.ValidationError("師傅已被刪除")
+                
         return value
