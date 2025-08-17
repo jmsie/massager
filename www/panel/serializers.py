@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Therapist
+from .models import Therapist, ServiceSurvey
 
 
 class TherapistSerializer(serializers.ModelSerializer):
@@ -30,4 +30,29 @@ class TherapistSerializer(serializers.ModelSerializer):
         """Clean nick name"""
         if value:
             return value.strip()
+        return value
+    
+class ServiceSurveySerializer(serializers.ModelSerializer):
+    therapist_name = serializers.CharField(source='therapist.name', read_only=True)
+    
+    class Meta:
+        model = ServiceSurvey
+        fields = ['id', 'therapist', 'therapist_name', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'created_at', 'therapist_name']
+
+    def validate_rating(self, value):
+        """驗證星級範圍"""
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("星級必須在 1-5 之間")
+        return value
+
+    def validate_therapist(self, value):
+        """驗證師傅是否屬於當前店家且未被刪除"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            store = getattr(request.user, "store", None)
+            if store and value.store != store:
+                raise serializers.ValidationError("師傅不屬於您的店家")
+            if value.is_deleted:
+                raise serializers.ValidationError("師傅已被刪除")
         return value
