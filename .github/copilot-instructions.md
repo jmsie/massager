@@ -45,13 +45,11 @@
 
 ## Key Files/Directories
 - `www/panel/models.py` – Data models
-- `www/panel/views.py` – API and web views
+- `www/panel/viewsets/` – Modularized DRF viewsets (e.g., `therapist_viewset.py`)
+- `www/panel/views.py` – Web views (separate from viewsets)
 - `www/panel/serializers.py` – DRF serializers
 - `www/panel/urls.py` – URL routing
 - `www/project/settings.py` – Django settings
 - `www/requirements.txt` – Python dependencies
 - `www/Dockerfile`, `www/docker-compose.yml` – Container setup
 - `www/.llm/api.txt` – API documentation
-
----
-If any section is unclear or missing, please provide feedback so this guide can be improved for future AI agents.
