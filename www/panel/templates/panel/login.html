@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 按摩師管理系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .form-control:hover {
+            border-color: #667eea;
+            background: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #d00;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { 
+                transform: rotate(360deg); 
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .login-title {
+                font-size: 24px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+
+            .logo svg {
+                width: 30px;
+                height: 30px;
+            }
+        }
+
+        /* Input validation styles */
+        .form-control.error {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .form-control.success {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        /* Floating label effect */
+        .form-group.floating {
+            position: relative;
+        }
+
+        .form-group.floating .form-label {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            background: white;
+            padding: 0 4px;
+            color: #666;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-group.floating .form-control:focus + .form-label,
+        .form-group.floating .form-control:not(:placeholder-shown) + .form-label {
+            top: -8px;
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <div class="logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 7.5V9M15 7.5C15 6.1 12 6 12 6S9 6.1 9 7.5V9H21M9 9C9 10.4 9 12 9 12L15 12C15 12 15 10.4 15 9M12 13C8 13 8 17 8 18V20H16V18C16 17 16 13 12 13Z"/>
+                </svg>
+            </div>
+            <h1 class="login-title">歡迎回來</h1>
+            <p class="login-subtitle">請登入您的帳號以繼續</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message">
+            <strong>登入失敗</strong><br>
+            帳號或密碼錯誤，請重新輸入
+        </div>
+
+        <!-- Login Form -->
+        <form method="post" action="{% url 'login' %}" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="email" class="form-label">帳號</label>
+                <input 
+                    type="text" 
+                    id="email" 
+                    name="email" 
+                    class="form-control" 
+                    placeholder="請輸入您的帳號"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">密碼</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-control" 
+                    placeholder="請輸入您的密碼"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+            
+            <button type="submit" class="btn" id="loginBtn">
+                <span id="loginText">登入</span>
+            </button>
+        </form>
+
+        <!-- Forgot Password -->
+        <div class="forgot-password">
+            <a href="#" onclick="showForgotPassword()">忘記密碼？</a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2025 按摩師管理系統. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Form handling
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginText = document.getElementById('loginText');
+        const errorMessage = document.getElementById('errorMessage');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        // Show error message if there are login errors
+        {% if form.errors or error %}
+        document.addEventListener('DOMContentLoaded', function() {
+            showError();
+        });
+        {% endif %}
+
+        // Form submission with loading state
+        loginForm.addEventListener('submit', function(e) {
+            // Don't prevent default - let the form submit normally
+            showLoading();
+        });
+
+        // Input validation
+        emailInput.addEventListener('input', function() {
+            validateInput(this);
+        });
+
+        passwordInput.addEventListener('input', function() {
+            validateInput(this);
+        });
+
+        function validateInput(input) {
+            const value = input.value.trim();
+            
+            if (value === '') {
+                input.classList.remove('success', 'error');
+            } else if (value.length >= 3) {
+                input.classList.remove('error');
+                input.classList.add('success');
+            } else {
+                input.classList.remove('success');
+                input.classList.add('error');
+            }
+        }
+
+        function showLoading() {
+            loginBtn.disabled = true;
+            loginText.innerHTML = '<span class="loading"></span>登入中...';
+        }
+
+        function hideLoading() {
+            loginBtn.disabled = false;
+            loginText.innerHTML = '登入';
+        }
+
+        function showError() {
+            errorMessage.classList.add('show');
+            // Auto hide after 5 seconds
+            setTimeout(function() {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        function showForgotPassword() {
+            alert('請聯繫系統管理員重設密碼');
+        }
+
+        // Auto focus on first input
+        document.addEventListener('DOMContentLoaded', function() {
+            emailInput.focus();
+        });
+
+        // Clear error message when user starts typing
+        [emailInput, passwordInput].forEach(input => {
+            input.addEventListener('input', function() {
+                errorMessage.classList.remove('show');
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Enter key submits form
+            if (e.key === 'Enter' && !loginBtn.disabled) {
+                loginForm.submit();
+            }
+        });
+
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+</body>
+</html>
