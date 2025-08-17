@@ -1,17 +1,22 @@
 from django.urls import path, include
-from . import views
 from rest_framework.routers import DefaultRouter
-from .views import TherapistViewSet
 
+# Import from new locations
+from .views.auth_views import login_view, logout_view
+from .views.template_views import portal_home, manage_therapists
+from .viewsets.therapist import TherapistViewSet
+
+# API Router
 router = DefaultRouter()
 router.register(r'therapists', TherapistViewSet)
 
 urlpatterns = [
-    path('', views.portal_home, name='portal_home'),
-    path(
-        'manage-therapists/', views.manage_therapists, name='manage_therapists'
-    ),
+    # Web URLs
+    path('', portal_home, name='portal_home'),
+    path('manage-therapists/', manage_therapists, name='manage_therapists'),
+    path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
+    
+    # API URLs
     path('api/', include((router.urls, 'api'))),
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
 ]
