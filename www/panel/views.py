@@ -62,12 +62,6 @@ def manage_therapists(request):
 
 @ensure_csrf_cookie
 def login_view(request):
-    """
-    使用 Django Auth。
-    表單欄位建議為 name="email" 與 name="password"。
-    預設 ModelBackend 用 username；這裡我們用 email 來當 username 試登，
-    找不到就再用 username 試一次（兩者擇一皆可登入）。
-    """
     if request.method == "POST":
         email_or_username = request.POST.get("email") or ""
         password = request.POST.get("password") or ""
@@ -75,18 +69,28 @@ def login_view(request):
         user = None
 
         # 先試 email 當 username（常見做法：把 User.username 設為 email）
-        user = authenticate(request, username=email_or_username, password=password)
+        user = authenticate(
+            request, username=email_or_username, password=password
+        )
 
         # 若你希望支援「email 存在於 user.email，但 username 不是 email」的情境，可再查一次：
         if user is None:
             try:
                 by_email = User.objects.get(email=email_or_username)
-                user = authenticate(request, username=by_email.username, password=password)
+                user = authenticate(
+                    request, username=by_email.username, password=password
+                )
             except User.DoesNotExist:
                 user = None
 
         if user is not None:
             login(request, user)
+
+            # Store the store name in the session
+            store = Store.objects.filter(user=user).first()
+            if store:
+                request.session['store_name'] = store.name
+
             return redirect("portal_home")
         else:
             return render(request, "panel/login.html", {"error": "帳號或密碼錯誤"})
@@ -110,7 +114,6 @@ def portal_home(request):
     成功登入後可用 request.user 取得當前使用者，
     若想拿到 Store，可：Store.objects.get(user=request.user)
     """
-    # 範例：嘗試抓取商家的 Store 資料（如果不是店家也不會壞，只是會找不到）
-    store = Store.objects.filter(user=request.user).first()
-    ctx = {"store": store}
+    # Use store name from session
+    ctx = {"store_name": request.session.get("store_name", "店家名稱")}
     return render(request, "panel/portal_home.html", ctx)
