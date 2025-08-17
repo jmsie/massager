@@ -51,6 +51,7 @@
 - `www/project/settings.py` – Django settings
 - `www/requirements.txt` – Python dependencies
 - `www/Dockerfile`, `www/docker-compose.yml` – Container setup
+- `www/.llm/api.txt` – API documentation
 
 ---
 If any section is unclear or missing, please provide feedback so this guide can be improved for future AI agents.

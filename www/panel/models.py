@@ -33,6 +33,7 @@ class Store(models.Model):
 
 
 
+
 class Therapist(models.Model):
     store = models.ForeignKey(
         Store,
@@ -62,3 +63,27 @@ class Therapist(models.Model):
 
     def __str__(self):
         return self.name
+  
+# 師傅服務問卷
+class ServiceSurvey(models.Model):
+    therapist = models.ForeignKey(
+        'Therapist', on_delete=models.CASCADE, related_name='service_surveys'
+    )
+    RATING_CHOICES = [(i, f'{i} 星') for i in range(1, 6)]
+    rating = models.PositiveSmallIntegerField(
+        choices=RATING_CHOICES,
+        default=5,
+        verbose_name='星級'
+    )
+    comment = models.TextField(blank=True, verbose_name='備註')
+    created_at = models.DateTimeField(
+        default=timezone.now, verbose_name='填寫時間'
+    )
+
+    class Meta:
+        verbose_name = '服務問卷'
+        verbose_name_plural = '服務問卷'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.therapist} - {self.rating} 星'
