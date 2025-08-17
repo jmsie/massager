@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework import status
 
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -16,48 +17,63 @@ User = get_user_model()
 class TherapistViewSet(viewsets.ModelViewSet):
     queryset = Therapist.objects.all()
     serializer_class = TherapistSerializer
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(
-            serializer.data, 
-            status=status.HTTP_201_CREATED, 
+            serializer.data,
+            status=status.HTTP_201_CREATED,
             headers=headers
         )
-    
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(
-            instance, 
-            data=request.data, 
+            instance,
+            data=request.data,
             partial=partial
         )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
-    
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(
-            {'detail': 'Therapist deleted successfully.'}, 
+            {'detail': 'Therapist deleted successfully.'},
             status=status.HTTP_200_OK
         )
+
+    def perform_create(self, serializer):
+        # Associate the therapist with the currently logged-in user's store
+        store_name = self.request.session.get('store_name')
+        store = Store.objects.filter(name=store_name).first()
+        if store:
+            serializer.save(store=store)
+        else:
+            raise ValueError("Store not found for the current session.")
+
+    def perform_update(self, serializer):
+        # Prevent changing the store during updates
+        if 'store' in serializer.validated_data:
+            raise ValueError("Changing the store is not allowed.")
+        serializer.save()
+
 
 @ensure_csrf_cookie
 @login_required
 def manage_therapists(request):
     therapists = Therapist.objects.all().order_by('-created_at')
     return render(
-        request, 
-        'panel/manage_therapists.html', 
+        request,
+        'panel/manage_therapists.html',
         {'therapists': therapists}
     )
-
 
 
 @ensure_csrf_cookie
