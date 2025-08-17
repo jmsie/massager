@@ -7,9 +7,11 @@ router = DefaultRouter()
 router.register(r'therapists', TherapistViewSet)
 
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', views.portal_home, name='portal_home'),
     path(
         'manage-therapists/', views.manage_therapists, name='manage_therapists'
     ),
     path('api/', include((router.urls, 'api'))),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
 ]
