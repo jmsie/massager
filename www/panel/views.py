@@ -15,8 +15,16 @@ User = get_user_model()
 
 
 class TherapistViewSet(viewsets.ModelViewSet):
-    queryset = Therapist.objects.all()
     serializer_class = TherapistSerializer
+    queryset = Therapist.objects.none()  # Default queryset to avoid errors
+
+    def get_queryset(self):
+        # 只看自己店、且未刪
+        store = getattr(self.request.user, "store", None)
+        print("Here")
+        if not store:
+            return Therapist.objects.none()
+        return Therapist.objects.filter(store=store, is_deleted=False)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -43,11 +51,10 @@ class TherapistViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(
-            {'detail': 'Therapist deleted successfully.'},
-            status=status.HTTP_200_OK
-        )
+        instance.is_deleted = True
+        instance.save(update_fields=["is_deleted"])
+        return Response({"detail": "Therapist soft deleted successfully."},
+                        status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
         # Associate the therapist with the currently logged-in user's store
@@ -68,7 +75,7 @@ class TherapistViewSet(viewsets.ModelViewSet):
 @ensure_csrf_cookie
 @login_required
 def manage_therapists(request):
-    therapists = Therapist.objects.all().order_by('-created_at')
+    therapists = Therapist.objects.all().order_by('-created_at').filter(is_deleted=False)
     return render(
         request,
         'panel/manage_therapists.html',

@@ -51,6 +51,7 @@ class Therapist(models.Model):
     )
     bio = models.TextField(blank=True, null=True, verbose_name="介紹")
     enabled = models.BooleanField(default=True, verbose_name="啟用")
+    is_deleted = models.BooleanField(default=False, verbose_name="已刪除")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
 
