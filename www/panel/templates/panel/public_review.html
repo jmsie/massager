@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>評論師傅 - {{ therapist.name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .review-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            animation: slideUp 0.6s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .review-header {
+            background: linear-gradient(135deg, #343a40, #495057);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .store-name {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .therapist-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header-subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        .review-body {
+            padding: 40px 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
+        
+        .rating-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .star-rating {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .star {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            fill: #e0e0e0;
+            transition: all 0.2s ease;
+        }
+        
+        .star:hover,
+        .star.active {
+            fill: #ffc107;
+            transform: scale(1.1);
+        }
+        
+        .star:hover ~ .star {
+            fill: #e0e0e0;
+        }
+        
+        .rating-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            min-width: 100px;
+        }
+        
+        .rating-description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .form-control::placeholder {
+            color: #999;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .therapist-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .therapist-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #007bff, #6f42c1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .therapist-details {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .review-container {
+                border-radius: 15px;
+            }
+            
+            .review-header {
+                padding: 25px 20px;
+            }
+            
+            .therapist-name {
+                font-size: 24px;
+            }
+            
+            .review-body {
+                padding: 30px 20px;
+            }
+            
+            .star {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .btn {
+                font-size: 16px;
+                padding: 12px;
+            }
+        }
+        
+        /* Success Animation */
+        .review-form.success {
+            display: none;
+        }
+        
+        .success-container {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+        
+        .success-container.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .success-icon-large {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            fill: #28a745;
+        }
+        
+        .success-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        
+        .success-text {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="review-container">
+        <!-- Header -->
+        <div class="review-header">
+            <div class="store-name">{{ store.name }}</div>
+            <div class="therapist-name">{{ therapist.name }}</div>
+            <div class="header-subtitle">請為您的服務體驗評分</div>
+        </div>
+        
+        <!-- Body -->
+        <div class="review-body">
+            <!-- Therapist Info -->
+            <div class="therapist-info">
+                <div class="therapist-avatar">
+                    {{ therapist.name|first }}
+                </div>
+                <div class="therapist-details">
+                    {% if therapist.nick_name %}
+                        暱稱：{{ therapist.nick_name }}<br>
+                    {% endif %}
+                    {% if therapist.line_id %}
+                        Line ID：{{ therapist.line_id }}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Success Message -->
+            <div class="success-message" id="successMessage">
+                <svg class="success-icon" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                感謝您的評論！您的意見對我們很重要。
+            </div>
+            
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage">
+                評論提交失敗，請稍後再試。
+            </div>
+            
+            <!-- Review Form -->
+            <form id="reviewForm" class="review-form">
+                {% csrf_token %}
+                <input type="hidden" id="therapistId" value="{{ therapist.id }}">
+                
+                <!-- Rating -->
+                <div class="form-group">
+                    <label class="form-label">
+                        服務評分 <span class="required">*</span>
+                    </label>
+                    <div class="rating-container">
+                        <div class="star-rating" id="starRating">
+                            <svg class="star" data-rating="1" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                            <svg class="star" data-rating="2" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                            <svg class="star" data-rating="3" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                            <svg class="star" data-rating="4" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                            <svg class="star" data-rating="5" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                        </div>
+                        <div class="rating-text" id="ratingText">請選擇評分</div>
+                    </div>
+                    <div class="rating-description" id="ratingDescription"></div>
+                </div>
+                
+                <!-- Comment -->
+                <div class="form-group">
+                    <label class="form-label" for="comment">
+                        服務心得
+                    </label>
+                    <textarea 
+                        class="form-control" 
+                        id="comment" 
+                        name="comment" 
+                        placeholder="請分享您對{{ therapist.name }}師傅服務的心得...（選填）"
+                        maxlength="500"
+                    ></textarea>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    提交評論
+                </button>
+            </form>
+            
+            <!-- Success Container -->
+            <div class="success-container" id="successContainer">
+                <svg class="success-icon-large" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                <div class="success-title">評論提交成功！</div>
+                <div class="success-text">
+                    感謝您花時間為 {{ therapist.name }} 師傅的服務評分。<br>
+                    您的意見將幫助我們提供更好的服務。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CSRF Token helper
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+        let selectedRating = 0;
+
+        // Rating descriptions
+        const ratingDescriptions = {
+            1: "非常不滿意 😞",
+            2: "不滿意 😕", 
+            3: "普通 😐",
+            4: "滿意 😊",
+            5: "非常滿意 😍"
+        };
+
+        // Star rating functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const stars = document.querySelectorAll('.star');
+            const ratingText = document.getElementById('ratingText');
+            const ratingDescription = document.getElementById('ratingDescription');
+
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    selectRating(rating);
+                });
+
+                star.addEventListener('mouseenter', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    highlightStars(rating);
+                    updateRatingText(rating);
+                });
+            });
+
+            document.getElementById('starRating').addEventListener('mouseleave', function() {
+                highlightStars(selectedRating);
+                updateRatingText(selectedRating);
+            });
+
+            function selectRating(rating) {
+                selectedRating = rating;
+                highlightStars(rating);
+                updateRatingText(rating);
+            }
+
+            function highlightStars(rating) {
+                stars.forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+            }
+
+            function updateRatingText(rating) {
+                if (rating === 0) {
+                    ratingText.textContent = '請選擇評分';
+                    ratingDescription.textContent = '';
+                } else {
+                    ratingText.textContent = `${rating}/5 星`;
+                    ratingDescription.textContent = ratingDescriptions[rating] || '';
+                }
+            }
+
+            // Form submission
+            document.getElementById('reviewForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitReview();
+            });
+        });
+
+        function submitReview() {
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            // Validate rating
+            if (selectedRating === 0) {
+                alert('請選擇評分');
+                return;
+            }
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner"></div> 提交中...';
+
+            const data = {
+                therapist: parseInt(document.getElementById('therapistId').value),
+                rating: selectedRating,
+                comment: document.getElementById('comment').value.trim()
+            };
+
+            // 使用獨立的公開 API 端點
+            fetch('/api/public-review/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                });
+            })
+            .then(data => {
+                // Show success
+                showSuccess();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '提交評論';
+                
+                // Show error message
+                let errorText = '評論提交失敗';
+                if (error.message) {
+                    errorText += '：' + error.message;
+                }
+                errorMessage.textContent = errorText;
+                errorMessage.style.display = 'block';
+                
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
+
+        function showSuccess() {
+            const reviewForm = document.querySelector('.review-form');
+            const successContainer = document.getElementById('successContainer');
+            
+            // Hide form and show success message
+            reviewForm.style.display = 'none';
+            successContainer.classList.add('show');
+            
+            // Optional: Redirect after delay
+            setTimeout(() => {
+                // You can redirect to another page here if needed
+                // window.location.href = '/';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

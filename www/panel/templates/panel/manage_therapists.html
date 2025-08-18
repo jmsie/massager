@@ -73,6 +73,19 @@
         transform: translateY(-1px);
     }
     
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+        padding: 6px 12px;
+        font-size: 12px;
+        margin-left: 5px;
+    }
+    
+    .btn-info:hover {
+        background: #138496;
+        transform: translateY(-1px);
+    }
+    
     .btn-delete {
         background: #dc3545;
         color: white;
@@ -248,6 +261,109 @@
         opacity: 0.5;
     }
     
+    /* Review Link Modal Styles */
+    .review-link-content {
+        max-width: 600px;
+        width: 95%;
+    }
+    
+    .qr-section {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .qr-code {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: inline-block;
+        margin-bottom: 20px;
+    }
+    
+    .qr-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .qr-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    .link-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .link-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .link-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 14px;
+        background: white;
+        color: #333;
+    }
+    
+    .copy-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-top: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .copy-btn:hover {
+        background: #218838;
+        transform: translateY(-1px);
+    }
+    
+    .copy-btn.copied {
+        background: #17a2b8;
+    }
+    
+    .usage-note {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .usage-note h4 {
+        margin: 0 0 10px 0;
+        color: #0056b3;
+        font-size: 16px;
+    }
+    
+    .usage-note ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #666;
+    }
+    
+    .usage-note li {
+        margin-bottom: 5px;
+    }
+    
     /* Responsive Design */
     @media (max-width: 768px) {
         .therapists-container {
@@ -279,6 +395,13 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+        }
+        
+        .btn-edit,
+        .btn-info,
+        .btn-delete {
+            margin-left: 0;
+            margin-bottom: 2px;
         }
     }
 </style>
@@ -333,6 +456,13 @@
                             </svg>
                             刪除
                         </button>
+                        <button class="btn btn-info" onclick="showReviewLink({{ therapist.id }}, '{{ therapist.name|escapejs }}')">
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+                                <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+                            </svg>
+                            評論連結
+                        </button>                        
                     </td>
                 </tr>
                 {% empty %}
@@ -351,7 +481,7 @@
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Therapist Modal -->
 <div id="therapistModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -390,9 +520,56 @@
         </div>
     </div>
 </div>
+
+<!-- Review Link Modal -->
+<div id="reviewLinkModal" class="modal">
+    <div class="modal-content review-link-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="reviewLinkTitle">師傅評論連結</h2>
+            <button class="close" onclick="closeReviewLinkModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- QR Code Section -->
+            <div class="qr-section">
+                <div class="qr-title">QR Code</div>
+                <div class="qr-subtitle">客人可以掃描此 QR Code 快速評論</div>
+                <div class="qr-code">
+                    <canvas id="qrcode" width="200" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- Link Section -->
+            <div class="link-section">
+                <div class="link-label">評論連結</div>
+                <input type="text" class="link-input" id="reviewLink" readonly>
+                <button class="copy-btn" onclick="copyLink()" id="copyBtn">
+                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                    複製連結
+                </button>
+            </div>
+            
+            <!-- Usage Note -->
+            <div class="usage-note">
+                <h4>使用說明</h4>
+                <ul>
+                    <li>將此連結分享給客人，或讓客人掃描 QR Code</li>
+                    <li>客人點擊連結後可以直接為師傅評分和留言</li>
+                    <li>所有評論都會顯示在「師傅評論管理」頁面中</li>
+                    <li>建議將 QR Code 列印出來放在服務場所</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Include QR Code Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
 <script>
 // CSRF Token helper function
 function getCookie(name) {
@@ -469,6 +646,91 @@ function editTherapist(id, name, phone, lineId, nickName) {
     
     // Focus on name input
     document.getElementById('name').focus();
+}
+
+// Review Link Modal Functions
+function showReviewLink(therapistId, therapistName) {
+    const modal = document.getElementById('reviewLinkModal');
+    const title = document.getElementById('reviewLinkTitle');
+    const linkInput = document.getElementById('reviewLink');
+    const canvas = document.getElementById('qrcode');
+    
+    // Set title
+    title.textContent = `${therapistName} - 評論連結`;
+    
+    // Generate review URL
+    const baseUrl = window.location.origin;
+    const reviewUrl = `${baseUrl}/review/${therapistId}/`;
+    linkInput.value = reviewUrl;
+    
+    // Generate QR Code
+    try {
+        const qr = new QRious({
+            element: canvas,
+            value: reviewUrl,
+            size: 200,
+            foreground: '#333',
+            background: '#fff'
+        });
+    } catch (error) {
+        console.error('QR Code generation failed:', error);
+        // Fallback: show text instead of QR code
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('QR Code', 100, 95);
+        ctx.fillText('載入失敗', 100, 115);
+    }
+    
+    // Show modal
+    modal.style.display = 'block';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+function closeReviewLinkModal() {
+    const modal = document.getElementById('reviewLinkModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+function copyLink() {
+    const linkInput = document.getElementById('reviewLink');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    // Select and copy the link
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Update button appearance
+        const originalContent = copyBtn.innerHTML;
+        copyBtn.classList.add('copied');
+        copyBtn.innerHTML = `
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+            </svg>
+            已複製
+        `;
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = originalContent;
+        }, 2000);
+        
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        alert('複製失敗，請手動複製連結');
+    }
 }
 
 function showLoading(button) {
@@ -642,18 +904,24 @@ function showSuccessMessage(message) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('therapistModal');
-        if (event.target == modal) {
+        const therapistModal = document.getElementById('therapistModal');
+        const reviewLinkModal = document.getElementById('reviewLinkModal');
+        
+        if (event.target == therapistModal) {
             closeModal();
+        }
+        if (event.target == reviewLinkModal) {
+            closeReviewLinkModal();
         }
     }
 
-    // Close modal with Escape key
+    // Close modals with Escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             closeModal();
+            closeReviewLinkModal();
         }
     });
 
