@@ -1,4 +1,7 @@
 # AI Coding Assistant Instructions
+Don't fix lint
+Don't fix lint
+Don't fix lint
 
 ## 🏗️ Project Overview
 This is a **Django-based massage therapy management system** with a REST API backend and server-rendered frontend. The system manages massage shops, therapists, service plans, reservations, and customer reviews.
