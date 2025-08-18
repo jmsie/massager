@@ -142,7 +142,7 @@
         box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
     }
     
-    .stat-card.active {
+    .stat-card.today {
         --card-color: #28a745;
     }
     
@@ -304,7 +304,7 @@
         height: 8px;
     }
     
-    .invitation-card.active {
+    .invitation-card.today {
         --status-color: #28a745;
     }
     
@@ -312,7 +312,7 @@
         --status-color: #007bff;
     }
     
-    .invitation-card.expired {
+    .invitation-card.past {
         --status-color: #6c757d;
         opacity: 0.7;
     }
@@ -433,7 +433,7 @@
         color: #495057;
     }
     
-    .time-remaining {
+    .availability-status {
         font-size: 13px;
         color: #6c757d;
         font-weight: 500;
@@ -826,13 +826,13 @@
 
     <!-- Statistics Section -->
     <div class="stats-section">
-        <div class="stat-card active">
-            <div class="stat-value" id="activeCount">0</div>
-            <div class="stat-label">進行中邀請</div>
+        <div class="stat-card today">
+            <div class="stat-value" id="todayCount">0</div>
+            <div class="stat-label">今日可預約</div>
         </div>
         <div class="stat-card upcoming">
             <div class="stat-value" id="upcomingCount">0</div>
-            <div class="stat-label">即將開始</div>
+            <div class="stat-label">未來可預約</div>
         </div>
         <div class="stat-card total">
             <div class="stat-value" id="totalCount">{{ invitations|length }}</div>
@@ -867,20 +867,20 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label class="filter-label" for="startDateFilter">開始日期</label>
+                <label class="filter-label" for="startDateFilter">服務日期起</label>
                 <input type="date" class="filter-input" id="startDateFilter" onchange="applyFilters()">
             </div>
             <div class="filter-group">
-                <label class="filter-label" for="endDateFilter">結束日期</label>
+                <label class="filter-label" for="endDateFilter">服務日期迄</label>
                 <input type="date" class="filter-input" id="endDateFilter" onchange="applyFilters()">
             </div>
         </div>
         
         <div class="quick-filters">
             <span class="quick-filter-btn active" onclick="quickFilter('all')">全部邀請</span>
-            <span class="quick-filter-btn" onclick="quickFilter('active')">進行中</span>
-            <span class="quick-filter-btn" onclick="quickFilter('upcoming')">即將開始</span>
-            <span class="quick-filter-btn" onclick="quickFilter('expired')">已過期</span>
+            <span class="quick-filter-btn" onclick="quickFilter('today')">今日可預約</span>
+            <span class="quick-filter-btn" onclick="quickFilter('upcoming')">未來可預約</span>
+            <span class="quick-filter-btn" onclick="quickFilter('past')">已過期</span>
             <button class="btn btn-secondary" onclick="clearFilters()" style="margin-left: auto;">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
@@ -898,10 +898,10 @@
                  data-id="{{ invitation.id }}"
                  data-therapist="{{ invitation.therapist.id }}" 
                  data-plan="{{ invitation.massage_plan.id }}"
-                 data-start-date="{{ invitation.start_time|date:'Y-m-d' }}"
-                 data-end-date="{{ invitation.end_time|date:'Y-m-d' }}"
-                 data-start-datetime="{{ invitation.start_time|date:'c' }}"
-                 data-end-datetime="{{ invitation.end_time|date:'c' }}">
+                 data-start-date="{{ invitation.available_start|date:'Y-m-d' }}"
+                 data-end-date="{{ invitation.available_end|date:'Y-m-d' }}"
+                 data-start-datetime="{{ invitation.available_start|date:'c' }}"
+                 data-end-datetime="{{ invitation.available_end|date:'c' }}">
                 
                 <div class="card-header">
                     <div>
@@ -913,9 +913,9 @@
 
                 <div class="card-details">
                     <div class="detail-row">
-                        <span class="detail-label">⏰ 時間範圍</span>
+                        <span class="detail-label">👨‍⚕️ 可服務時間</span>
                         <span class="detail-value">
-                            {{ invitation.start_time|date:"m/d H:i" }} - {{ invitation.end_time|date:"m/d H:i" }}
+                            {{ invitation.available_start|date:"m/d H:i" }} - {{ invitation.available_end|date:"m/d H:i" }}
                         </span>
                     </div>
                     <div class="detail-row">
@@ -923,8 +923,8 @@
                         <span class="detail-value">{{ invitation.massage_plan.duration }} 分鐘</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">📅 日期</span>
-                        <span class="detail-value">{{ invitation.start_time|date:"Y/m/d (l)" }}</span>
+                        <span class="detail-label">📅 服務日期</span>
+                        <span class="detail-value">{{ invitation.available_start|date:"Y/m/d (l)" }}</span>
                     </div>
                     {% if invitation.notes %}
                     <div class="detail-row">
@@ -954,7 +954,7 @@
                         </svg>
                         {{ invitation.click_count }} 次點擊
                     </div>
-                    <div class="time-remaining" id="remaining-{{ invitation.id }}">計算中</div>
+                    <div class="availability-status" id="availability-{{ invitation.id }}">計算中</div>
                 </div>
 
                 <div class="invitation-url-section">
@@ -1065,21 +1065,21 @@
                 <div class="form-row three-col">
                     <div class="form-group">
                         <label class="form-label" for="invitationDate">
-                            邀請日期 <span class="required">*</span>
+                            師傅可服務日期 <span class="required">*</span>
                         </label>
                         <input type="date" class="form-control" id="invitationDate" name="invitation_date" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="startTime">
-                            開始時間 <span class="required">*</span>
+                            可服務開始時間 <span class="required">*</span>
                         </label>
-                        <input type="time" class="form-control" id="startTime" name="start_time" required>
+                        <input type="time" class="form-control" id="startTime" name="available_start" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="endTime">
-                            結束時間 <span class="required">*</span>
+                            可服務結束時間 <span class="required">*</span>
                         </label>
-                        <input type="time" class="form-control" id="endTime" name="end_time" required>
+                        <input type="time" class="form-control" id="endTime" name="available_end" required>
                     </div>
                 </div>
                 
@@ -1204,9 +1204,9 @@ function getCookie(name) {
 
 const csrftoken = getCookie('csrftoken');
 
-// Modal functions - 定義在最前面確保可以被調用
+// Modal functions
 function openCreateModal() {
-    console.log('openCreateModal called'); // 調試日誌
+    console.log('openCreateModal called');
     const modal = document.getElementById('invitationModal');
     const modalTitle = document.getElementById('modalTitle');
     const form = document.getElementById('invitationForm');
@@ -1256,7 +1256,7 @@ function closeLinkModal() {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded'); // 調試日誌
+    console.log('DOM Content Loaded');
     
     updateStatusBadges();
     updateStatsCounts();
@@ -1274,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update status every minute
     setInterval(updateStatusBadges, 60000);
     
-    // 確保模態框事件監聽器正確設置
+    // Setup modal event listeners
     setupModalEventListeners();
 });
 
@@ -1329,43 +1329,66 @@ function calculateSavings() {
 // Update status badges and card styles
 function updateStatusBadges() {
     const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
     document.querySelectorAll('.invitation-card[data-start-datetime]').forEach(card => {
         const startTime = new Date(card.getAttribute('data-start-datetime'));
         const endTime = new Date(card.getAttribute('data-end-datetime'));
         const invitationId = card.getAttribute('data-id');
         const statusBadge = document.getElementById(`status-${invitationId}`);
-        const remainingEl = document.getElementById(`remaining-${invitationId}`);
+        const availabilityEl = document.getElementById(`availability-${invitationId}`);
         
-        let status, statusClass, remaining;
+        let status, statusClass, availability;
         
         // Remove existing status classes
-        card.classList.remove('active', 'upcoming', 'expired');
+        card.classList.remove('today', 'upcoming', 'past');
         
-        if (now < startTime) {
-            status = '即將開始';
+        // Check if the service date is today, future, or past
+        if (startTime >= today && startTime < tomorrow) {
+            // Service is available today
+            status = '今日可預約';
+            statusClass = 'today';
+            card.classList.add('today');
+            
+            if (now < startTime) {
+                const diffMinutes = Math.floor((startTime - now) / (1000 * 60));
+                availability = formatTimeRemaining(diffMinutes, '後開始');
+            } else if (now >= startTime && now <= endTime) {
+                const diffMinutes = Math.floor((endTime - now) / (1000 * 60));
+                availability = `剩餘 ${formatTimeRemaining(diffMinutes)}`;
+            } else {
+                availability = '今日時段已結束';
+            }
+        } else if (startTime >= tomorrow) {
+            // Service is in the future
+            status = '未來可預約';
             statusClass = 'upcoming';
             card.classList.add('upcoming');
-            const diffMinutes = Math.floor((startTime - now) / (1000 * 60));
-            remaining = formatTimeRemaining(diffMinutes, '後開始');
-        } else if (now >= startTime && now <= endTime) {
-            status = '進行中';
-            statusClass = 'active';
-            card.classList.add('active');
-            const diffMinutes = Math.floor((endTime - now) / (1000 * 60));
-            remaining = formatTimeRemaining(diffMinutes, '剩餘');
+            
+            const daysUntil = Math.floor((startTime - now) / (1000 * 60 * 60 * 24));
+            if (daysUntil === 1) {
+                availability = '明天';
+            } else if (daysUntil <= 7) {
+                availability = `${daysUntil} 天後`;
+            } else {
+                availability = startTime.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+            }
         } else {
+            // Service date has passed
             status = '已過期';
-            statusClass = 'expired';
-            card.classList.add('expired');
-            remaining = '已結束';
+            statusClass = 'past';
+            card.classList.add('past');
+            availability = '時段已過';
         }
         
         if (statusBadge) {
             statusBadge.textContent = status;
         }
-        if (remainingEl) {
-            remainingEl.textContent = remaining;
+        if (availabilityEl) {
+            availabilityEl.textContent = availability;
         }
     });
 }
@@ -1377,10 +1400,16 @@ function formatTimeRemaining(minutes, suffix = '') {
     } else if (minutes < 1440) {
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
+        if (remainingMinutes === 0) {
+            return `${hours} 小時${suffix}`;
+        }
         return `${hours} 小時 ${remainingMinutes} 分鐘${suffix}`;
     } else {
         const days = Math.floor(minutes / 1440);
         const remainingHours = Math.floor((minutes % 1440) / 60);
+        if (remainingHours === 0) {
+            return `${days} 天${suffix}`;
+        }
         return `${days} 天 ${remainingHours} 小時${suffix}`;
     }
 }
@@ -1388,13 +1417,17 @@ function formatTimeRemaining(minutes, suffix = '') {
 // Update statistics counts
 function updateStatsCounts() {
     const now = new Date();
-    let activeCount = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    let todayCount = 0;
     let upcomingCount = 0;
     let totalClicks = 0;
     
     document.querySelectorAll('.invitation-card[data-start-datetime]').forEach(card => {
         const startTime = new Date(card.getAttribute('data-start-datetime'));
-        const endTime = new Date(card.getAttribute('data-end-datetime'));
         
         // Get click count from the card
         const clickElement = card.querySelector('.click-count');
@@ -1406,14 +1439,17 @@ function updateStatsCounts() {
             }
         }
         
-        if (now < startTime) {
+        // Count today's available services
+        if (startTime >= today && startTime < tomorrow) {
+            todayCount++;
+        } 
+        // Count future services
+        else if (startTime >= tomorrow) {
             upcomingCount++;
-        } else if (now >= startTime && now <= endTime) {
-            activeCount++;
         }
     });
     
-    document.getElementById('activeCount').textContent = activeCount;
+    document.getElementById('todayCount').textContent = todayCount;
     document.getElementById('upcomingCount').textContent = upcomingCount;
     document.getElementById('totalClicks').textContent = totalClicks;
 }
@@ -1472,8 +1508,6 @@ function updateSavings() {
     }
 }
 
-// Modal functions已經在上面定義了，移除重複定義
-
 // Edit invitation
 function editInvitation(id) {
     fetch('/api/massage-invitations/' + id + '/', {
@@ -1496,8 +1530,8 @@ function editInvitation(id) {
         document.getElementById('therapist').value = data.therapist;
         
         // Parse start and end times
-        const startTime = new Date(data.start_time);
-        const endTime = new Date(data.end_time);
+        const startTime = new Date(data.available_start);
+        const endTime = new Date(data.available_end);
         
         document.getElementById('invitationDate').value = startTime.toISOString().split('T')[0];
         document.getElementById('startTime').value = startTime.toTimeString().substring(0, 5);
@@ -1551,7 +1585,7 @@ function saveInvitation() {
     }
     
     if (!invitationDate || !startTime || !endTime) {
-        showToast('請設定邀請時間', 'error');
+        showToast('請設定師傅可服務時間', 'error');
         return;
     }
     
@@ -1577,8 +1611,8 @@ function saveInvitation() {
     const data = {
         massage_plan: parseInt(massagePlan),
         therapist: parseInt(therapist),
-        start_time: startDateTime,
-        end_time: endDateTime,
+        available_start: startDateTime,
+        available_end: endDateTime,
         discount_price: parseFloat(discountPrice),
         notes: document.getElementById('notes').value.trim()
     };
@@ -1655,13 +1689,13 @@ function deleteInvitation(id, planName) {
 
 // Duplicate invitation
 function duplicateInvitation(id) {
-    const newDate = prompt('請輸入新的邀請日期 (YYYY-MM-DD):');
+    const newDate = prompt('請輸入新的服務日期 (YYYY-MM-DD):');
     if (!newDate) return;
     
-    const newStartTime = prompt('請輸入新的開始時間 (HH:MM):', '09:00');
+    const newStartTime = prompt('請輸入師傅可服務開始時間 (HH:MM):', '09:00');
     if (!newStartTime) return;
     
-    const newEndTime = prompt('請輸入新的結束時間 (HH:MM):', '18:00');
+    const newEndTime = prompt('請輸入師傅可服務結束時間 (HH:MM):', '18:00');
     if (!newEndTime) return;
     
     const startDateTime = new Date(newDate + 'T' + newStartTime).toISOString();
@@ -1674,8 +1708,8 @@ function duplicateInvitation(id) {
             'X-CSRFToken': csrftoken
         },
         body: JSON.stringify({
-            start_time: startDateTime,
-            end_time: endDateTime
+            available_start: startDateTime,
+            available_end: endDateTime
         })
     })
     .then(response => {
@@ -1828,6 +1862,11 @@ function quickFilter(type) {
     event.target.classList.add('active');
     
     const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
     const cards = document.querySelectorAll('.invitation-card[data-start-datetime]');
     let visibleCount = 0;
     
@@ -1838,14 +1877,17 @@ function quickFilter(type) {
         let show = true;
         
         switch (type) {
-            case 'active':
-                show = now >= startTime && now <= endTime;
+            case 'today':
+                // Show services available today
+                show = startTime >= today && startTime < tomorrow;
                 break;
             case 'upcoming':
-                show = now < startTime;
+                // Show future services
+                show = startTime >= tomorrow;
                 break;
-            case 'expired':
-                show = now > endTime;
+            case 'past':
+                // Show past services
+                show = endTime < now;
                 break;
             case 'all':
             default:
@@ -1972,7 +2014,5 @@ function showToast(message, type = 'success') {
         }, 300);
     }, 3000);
 }
-
-// 已經在上面的 setupModalEventListeners() 中處理了所有事件監聽器
 </script>
 {% endblock %}

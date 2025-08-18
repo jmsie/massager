@@ -9,14 +9,13 @@ from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 
 from ..models import MassageInvitation, Reservation
-from ..serializers import MassageInvitationSerializer, PublicMassageInvitationSerializer
+from ..serializers import (
+    MassageInvitationSerializer, PublicMassageInvitationSerializer
+)
 
 
 class MassageInvitationViewSet(viewsets.ModelViewSet):
-    """
-    按摩邀請管理 ViewSet
-    提供完整的 CRUD 功能
-    """
+    """按摩邀請管理 ViewSet 提供完整的 CRUD 功能"""
     serializer_class = MassageInvitationSerializer
     queryset = MassageInvitation.objects.all()
 
@@ -25,7 +24,7 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
         store = getattr(self.request.user, "store", None)
         if not store:
             return MassageInvitation.objects.none()
-        
+
         return MassageInvitation.objects.filter(
             massage_plan__store=store
         ).select_related('massage_plan', 'therapist').order_by('-created_at')
@@ -33,46 +32,51 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """列出所有邀請"""
         queryset = self.get_queryset()
-        
+
         # 狀態過濾
         status_filter = request.query_params.get('status')
         now = timezone.now()
-        
+
         if status_filter == 'active':
-            queryset = queryset.filter(start_time__lte=now, end_time__gte=now)
+            queryset = queryset.filter(
+                available_start__lte=now,
+                available_end__gte=now
+            )
         elif status_filter == 'upcoming':
-            queryset = queryset.filter(start_time__gt=now)
+            queryset = queryset.filter(available_start__gt=now)
         elif status_filter == 'expired':
-            queryset = queryset.filter(end_time__lt=now)
-        
+            queryset = queryset.filter(available_end__lt=now)
+
         # 師傅過濾
         therapist_id = request.query_params.get('therapist_id')
         if therapist_id:
             queryset = queryset.filter(therapist_id=therapist_id)
-        
+
         # 方案過濾
         massage_plan_id = request.query_params.get('massage_plan_id')
         if massage_plan_id:
             queryset = queryset.filter(massage_plan_id=massage_plan_id)
-        
+
         # 日期範圍過濾
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
-        
+
         if start_date:
             try:
                 start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
-                queryset = queryset.filter(start_time__gte=start_datetime)
+                queryset = queryset.filter(available_start__gte=start_datetime)
             except ValueError:
                 pass
-                
+
         if end_date:
             try:
-                end_datetime = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-                queryset = queryset.filter(end_time__lt=end_datetime)
+                end_datetime = datetime.strptime(
+                    end_date, '%Y-%m-%d'
+                ) + timedelta(days=1)
+                queryset = queryset.filter(available_end__lt=end_datetime)
             except ValueError:
                 pass
-        
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -98,15 +102,15 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
         """更新邀請"""
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        
+
         # 檢查邀請是否已經開始
         now = timezone.now()
-        if instance.start_time <= now:
+        if instance.available_start <= now:
             return Response(
                 {"error": "邀請已經開始，無法修改"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         serializer = self.get_serializer(
             instance,
             data=request.data,
@@ -119,15 +123,15 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """刪除邀請"""
         instance = self.get_object()
-        
+
         # 檢查邀請是否已經開始
         now = timezone.now()
-        if instance.start_time <= now <= instance.end_time:
+        if instance.available_start <= now <= instance.available_end:
             return Response(
                 {"error": "邀請正在進行中，無法刪除"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         self.perform_destroy(instance)
         return Response(
             {"detail": "邀請刪除成功"},
@@ -145,10 +149,9 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
         """取得目前有效的邀請"""
         now = timezone.now()
         queryset = self.get_queryset().filter(
-            start_time__lte=now,
-            end_time__gte=now
+            available_end__gte=now
         )
-        
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -156,8 +159,8 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
     def upcoming(self, request):
         """取得即將開始的邀請"""
         now = timezone.now()
-        queryset = self.get_queryset().filter(start_time__gt=now)
-        
+        queryset = self.get_queryset().filter(available_start__gt=now)
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -165,33 +168,37 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
     def duplicate(self, request, pk=None):
         """複製邀請"""
         instance = self.get_object()
-        
+
         # 創建新的邀請副本
         new_invitation = MassageInvitation(
-            start_time=instance.start_time,
-            end_time=instance.end_time,
+            available_start=instance.available_start,
+            available_end=instance.available_end,
             massage_plan=instance.massage_plan,
             therapist=instance.therapist,
             discount_price=instance.discount_price,
             notes=instance.notes
         )
-        
+
         # 如果提供了新的時間，則使用新時間
-        start_time = request.data.get('start_time')
-        end_time = request.data.get('end_time')
-        
-        if start_time:
-            new_invitation.start_time = timezone.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        if end_time:
-            new_invitation.end_time = timezone.datetime.fromisoformat(end_time.replace('Z', '+00:00'))
-        
+        available_start = request.data.get('available_start')
+        available_end = request.data.get('available_end')
+
+        if available_start:
+            new_invitation.available_start = timezone.datetime.fromisoformat(
+                available_start.replace('Z', '+00:00')
+            )
+
+        if available_end:
+            new_invitation.available_end = timezone.datetime.fromisoformat(
+                available_end.replace('Z', '+00:00')
+            )
+
         new_invitation.save()
-        
+
         serializer = self.get_serializer(new_invitation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
     """
     公開邀請 ViewSet
@@ -207,27 +214,27 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
         """查看邀請詳情並增加點擊次數"""
         try:
             invitation = get_object_or_404(MassageInvitation, slug=slug)
-            
+
             # 增加點擊次數
             invitation.click_count += 1
             invitation.save(update_fields=['click_count'])
-            
+
             # 檢查是否已被預約（一個邀請只能有一個預約）
             has_reservation = Reservation.objects.filter(
                 massage_plan=invitation.massage_plan,
                 therapist=invitation.therapist,
-                appointment_time__gte=invitation.start_time,
-                appointment_time__lte=invitation.end_time,
+                appointment_time__gte=invitation.available_start,
+                appointment_time__lte=invitation.available_end,
                 # 可以加入其他條件來識別是透過這個邀請預約的
             ).exists()
-            
+
             serializer = self.get_serializer(invitation)
             response_data = serializer.data
             response_data['is_booked'] = has_reservation
             response_data['click_count'] = invitation.click_count
-            
+
             return Response(response_data)
-            
+
         except MassageInvitation.DoesNotExist:
             return Response(
                 {"error": "邀請不存在"},
@@ -240,32 +247,32 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
         """預約邀請"""
         try:
             invitation = get_object_or_404(MassageInvitation, slug=slug)
-            
+
             # 檢查是否已經有人預約了（先搶先贏）
             existing_reservation = Reservation.objects.filter(
                 massage_plan=invitation.massage_plan,
                 therapist=invitation.therapist,
-                appointment_time__gte=invitation.start_time,
-                appointment_time__lte=invitation.end_time,
+                appointment_time__gte=invitation.available_start,
+                appointment_time__lte=invitation.available_end,
             ).exists()
-            
+
             if existing_reservation:
                 return Response(
                     {"error": "此優惠已被預約"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 檢查必要欄位
             customer_name = request.data.get('customer_name')
             customer_phone = request.data.get('customer_phone')
             appointment_time = request.data.get('appointment_time')
-            
+
             if not all([customer_name, customer_phone, appointment_time]):
                 return Response(
                     {"error": "請提供客戶姓名、電話和預約時間"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 驗證預約時間是否在邀請時間範圍內
             try:
                 appointment_datetime = timezone.datetime.fromisoformat(
@@ -276,50 +283,57 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                     {"error": "預約時間格式錯誤"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 檢查預約時間是否在可預約範圍內
-            if not (invitation.start_time <= appointment_datetime <= invitation.end_time):
+            if not (
+                invitation.available_start <= appointment_datetime <=
+                invitation.available_end
+            ):
                 return Response(
                     {"error": "預約時間必須在可預約時段內"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 檢查是否有足夠時間完成服務
-            service_end_time = appointment_datetime + timedelta(minutes=invitation.massage_plan.duration)
-            if service_end_time > invitation.end_time:
+            service_available_end = appointment_datetime + timedelta(
+                minutes=invitation.massage_plan.duration
+            )
+            if service_available_end > invitation.available_end:
                 return Response(
                     {"error": "預約時間加上服務時長超出可預約時段"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 檢查現在時間是否已經過了可預約時間
             now = timezone.now()
-            last_bookable_time = invitation.end_time - timedelta(minutes=invitation.massage_plan.duration)
+            last_bookable_time = invitation.available_end - timedelta(
+                minutes=invitation.massage_plan.duration
+            )
             if now > last_bookable_time:
                 return Response(
                     {"error": "優惠已過期，無法預約"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 檢查預約時間是否在未來
             if appointment_datetime <= now:
                 return Response(
                     {"error": "預約時間必須是未來時間"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 再次檢查是否有衝突（防止同時預約）
             existing_conflict = Reservation.objects.filter(
                 therapist=invitation.therapist,
                 appointment_time=appointment_datetime
             ).exists()
-            
+
             if existing_conflict:
                 return Response(
                     {"error": "該時段已被預約"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 創建預約
             reservation = Reservation.objects.create(
                 store=invitation.massage_plan.store,
@@ -328,10 +342,12 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                 appointment_time=appointment_datetime,
                 massage_plan=invitation.massage_plan,
                 therapist=invitation.therapist,
-                # 可以加入關聯到邀請的欄位
-                notes=f"透過優惠邀請預約 (原價: {invitation.massage_plan.price}, 優惠價: {invitation.discount_price})"
+                notes=(
+                    f"透過優惠邀請預約 (原價: {invitation.massage_plan.price}, "
+                    f"優惠價: {invitation.discount_price})"
+                )
             )
-            
+
             # 回傳預約資訊
             return Response({
                 "message": "預約成功",
@@ -342,9 +358,11 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                 "therapist": reservation.therapist.name,
                 "original_price": float(invitation.massage_plan.price),
                 "discount_price": float(invitation.discount_price),
-                "savings": float(invitation.massage_plan.price - invitation.discount_price)
+                "savings": float(
+                    invitation.massage_plan.price - invitation.discount_price
+                )
             }, status=status.HTTP_201_CREATED)
-            
+
         except MassageInvitation.DoesNotExist:
             return Response(
                 {"error": "邀請不存在"},

@@ -152,8 +152,8 @@ class Reservation(models.Model):
         return f"{self.customer_name} - {self.appointment_time} ({self.store.name})"
 
 class MassageInvitation(models.Model):
-    start_time = models.DateTimeField(verbose_name="開始時間")
-    end_time = models.DateTimeField(verbose_name="結束時間")
+    available_start = models.DateTimeField(verbose_name="可預約開始時間")
+    available_end = models.DateTimeField(verbose_name="可預約結束時間")
     massage_plan = models.ForeignKey(
         MassagePlan,
         on_delete=models.CASCADE,
@@ -193,5 +193,5 @@ class MassageInvitation(models.Model):
     def __str__(self):
         return (
             f"{self.massage_plan.name} - {self.therapist.name} "
-            f"({self.start_time} 至 {self.end_time})"
+            f"({self.available_start} 至 {self.available_end})"
         )

@@ -223,22 +223,27 @@ class SimpleReservationSerializer(serializers.ModelSerializer):
 
 class MassageInvitationSerializer(serializers.ModelSerializer):
     massage_plan_name = serializers.CharField(source='massage_plan.name', read_only=True)
-    massage_plan_duration = serializers.IntegerField(source='massage_plan.duration', read_only=True)
-    massage_plan_original_price = serializers.DecimalField(source='massage_plan.price', max_digits=10, decimal_places=2, read_only=True)
+    massage_plan_duration = serializers.IntegerField(
+        source='massage_plan.duration', read_only=True
+    )
+    massage_plan_original_price = serializers.DecimalField(
+        source='massage_plan.price', max_digits=10, decimal_places=2, read_only=True
+    )
     therapist_name = serializers.CharField(source='therapist.name', read_only=True)
     store_name = serializers.CharField(source='massage_plan.store.name', read_only=True)
     invitation_url = serializers.SerializerMethodField()
     discount_amount = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
     time_remaining = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = MassageInvitation
         fields = [
-            'id', 'start_time', 'end_time', 'massage_plan', 'massage_plan_name', 
-            'massage_plan_duration', 'massage_plan_original_price', 'therapist', 
-            'therapist_name', 'discount_price', 'discount_amount', 'slug', 
-            'click_count', 'notes', 'store_name', 'invitation_url', 'is_active',
+            'id', 'available_start', 'available_end', 'massage_plan',
+            'massage_plan_name', 'massage_plan_duration',
+            'massage_plan_original_price', 'therapist', 'therapist_name',
+            'discount_price', 'discount_amount', 'slug', 'click_count',
+            'notes', 'store_name', 'invitation_url', 'is_active',
             'time_remaining', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'slug', 'click_count', 'created_at', 'updated_at']
@@ -259,69 +264,42 @@ class MassageInvitationSerializer(serializers.ModelSerializer):
     def get_is_active(self, obj):
         """檢查邀請是否仍然有效"""
         now = timezone.now()
-        return obj.start_time <= now <= obj.end_time
+        return obj.available_start <= now <= obj.available_end
 
     def get_time_remaining(self, obj):
         """計算剩餘時間（分鐘）"""
         now = timezone.now()
-        if now > obj.end_time:
+        if now > obj.available_end:
             return 0
-        elif now < obj.start_time:
-            return int((obj.start_time - now).total_seconds() / 60)
+        elif now < obj.available_start:
+            return int((obj.available_start - now).total_seconds() / 60)
         else:
-            return int((obj.end_time - now).total_seconds() / 60)
+            return int((obj.available_end - now).total_seconds() / 60)
 
-    def validate_start_time(self, value):
+    def validate_available_start(self, value):
         """驗證開始時間"""
         if value <= timezone.now():
             raise serializers.ValidationError("開始時間必須是未來時間")
         return value
 
-    def validate_end_time(self, value):
+    def validate_available_end(self, value):
         """驗證結束時間"""
         if value <= timezone.now():
             raise serializers.ValidationError("結束時間必須是未來時間")
         return value
 
-    def validate_discount_price(self, value):
-        """驗證特價必須大於 0"""
-        if value <= 0:
-            raise serializers.ValidationError("特價必須大於 0")
-        return value
-
-    def validate_massage_plan(self, value):
-        """驗證按摩方案是否屬於當前店家"""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            store = getattr(request.user, "store", None)
-            if store and value.store != store:
-                raise serializers.ValidationError("所選方案不屬於您的店家")
-        return value
-
-    def validate_therapist(self, value):
-        """驗證師傅是否屬於當前店家且可用"""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            store = getattr(request.user, "store", None)
-            if store:
-                if value.store != store:
-                    raise serializers.ValidationError("所選師傅不屬於您的店家")
-                if value.is_deleted or not value.enabled:
-                    raise serializers.ValidationError("所選師傅不可用")
-        return value
-
     def validate(self, data):
         """跨欄位驗證"""
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
+        available_start = data.get('available_start')
+        available_end = data.get('available_end')
         discount_price = data.get('discount_price')
         massage_plan = data.get('massage_plan')
         therapist = data.get('therapist')
 
         # 檢查結束時間是否在開始時間之後
-        if start_time and end_time and end_time <= start_time:
+        if available_start and available_end and available_end <= available_start:
             raise serializers.ValidationError({
-                'end_time': '結束時間必須在開始時間之後'
+                'available_end': '結束時間必須在開始時間之後'
             })
 
         # 檢查特價是否不超過原價
@@ -338,29 +316,29 @@ class MassageInvitationSerializer(serializers.ModelSerializer):
                 })
 
         # 檢查師傅在該時間段是否已有其他邀請或預約
-        if therapist and start_time and end_time:
+        if therapist and available_start and available_end:
             # 檢查邀請衝突
             overlapping_invitations = MassageInvitation.objects.filter(
                 therapist=therapist,
-                start_time__lt=end_time,
-                end_time__gt=start_time
+                available_start__lt=available_end,
+                available_end__gt=available_start
             ).exclude(id=self.instance.id if self.instance else None)
-            
+
             if overlapping_invitations.exists():
                 raise serializers.ValidationError({
-                    'start_time': '該師傅在此時間段已有其他邀請'
+                    'available_start': '該師傅在此時間段已有其他邀請'
                 })
 
             # 檢查預約衝突
             overlapping_reservations = Reservation.objects.filter(
                 therapist=therapist,
-                appointment_time__gte=start_time,
-                appointment_time__lt=end_time
+                appointment_time__gte=available_start,
+                appointment_time__lt=available_end
             )
-            
+
             if overlapping_reservations.exists():
                 raise serializers.ValidationError({
-                    'start_time': '該師傅在此時間段已有預約'
+                    'available_start': '該師傅在此時間段已有預約'
                 })
 
         return data
@@ -369,8 +347,12 @@ class MassageInvitationSerializer(serializers.ModelSerializer):
 class PublicMassageInvitationSerializer(serializers.ModelSerializer):
     """公開邀請序列化器，用於客人查看邀請詳情"""
     massage_plan_name = serializers.CharField(source='massage_plan.name', read_only=True)
-    massage_plan_duration = serializers.IntegerField(source='massage_plan.duration', read_only=True)
-    massage_plan_original_price = serializers.DecimalField(source='massage_plan.price', max_digits=10, decimal_places=2, read_only=True)
+    massage_plan_duration = serializers.IntegerField(
+        source='massage_plan.duration', read_only=True
+    )
+    massage_plan_original_price = serializers.DecimalField(
+        source='massage_plan.price', max_digits=10, decimal_places=2, read_only=True
+    )
     therapist_name = serializers.CharField(source='therapist.name', read_only=True)
     store_name = serializers.CharField(source='massage_plan.store.name', read_only=True)
     store_address = serializers.CharField(source='massage_plan.store.address', read_only=True)
@@ -378,14 +360,15 @@ class PublicMassageInvitationSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
     time_remaining = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = MassageInvitation
         fields = [
-            'start_time', 'end_time', 'massage_plan_name', 'massage_plan_duration', 
-            'massage_plan_original_price', 'therapist_name', 'discount_price', 
-            'discount_amount', 'notes', 'store_name', 'store_address', 'store_phone',
-            'is_active', 'time_remaining'
+            'available_start', 'available_end', 'massage_plan_name',
+            'massage_plan_duration', 'massage_plan_original_price',
+            'therapist_name', 'discount_price', 'discount_amount', 'notes',
+            'store_name', 'store_address', 'store_phone', 'is_active',
+            'time_remaining'
         ]
 
     def get_discount_amount(self, obj):
@@ -397,14 +380,14 @@ class PublicMassageInvitationSerializer(serializers.ModelSerializer):
     def get_is_active(self, obj):
         """檢查邀請是否仍然有效"""
         now = timezone.now()
-        return obj.start_time <= now <= obj.end_time
+        return obj.available_start <= now <= obj.available_end
 
     def get_time_remaining(self, obj):
         """計算剩餘時間（分鐘）"""
         now = timezone.now()
-        if now > obj.end_time:
+        if now > obj.available_end:
             return 0
-        elif now < obj.start_time:
-            return int((obj.start_time - now).total_seconds() / 60)
+        elif now < obj.available_start:
+            return int((obj.available_start - now).total_seconds() / 60)
         else:
-            return int((obj.end_time - now).total_seconds() / 60)        
+            return int((obj.available_end - now).total_seconds() / 60)
