@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from datetime import datetime, timedelta
 
 from ..models import MassageInvitation, Reservation
@@ -189,6 +191,7 @@ class MassageInvitationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
     """
     公開邀請 ViewSet
@@ -196,7 +199,7 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
     """
     permission_classes = [AllowAny]
     serializer_class = PublicMassageInvitationSerializer
-    queryset = MassageInvitation.objects.all()  # 添加這行來修復錯誤
+    queryset = MassageInvitation.objects.all()
     lookup_field = 'slug'
 
     @action(detail=True, methods=['get'])
@@ -209,8 +212,21 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
             invitation.click_count += 1
             invitation.save(update_fields=['click_count'])
             
+            # 檢查是否已被預約（一個邀請只能有一個預約）
+            has_reservation = Reservation.objects.filter(
+                massage_plan=invitation.massage_plan,
+                therapist=invitation.therapist,
+                appointment_time__gte=invitation.start_time,
+                appointment_time__lte=invitation.end_time,
+                # 可以加入其他條件來識別是透過這個邀請預約的
+            ).exists()
+            
             serializer = self.get_serializer(invitation)
-            return Response(serializer.data)
+            response_data = serializer.data
+            response_data['is_booked'] = has_reservation
+            response_data['click_count'] = invitation.click_count
+            
+            return Response(response_data)
             
         except MassageInvitation.DoesNotExist:
             return Response(
@@ -219,16 +235,23 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
             )
 
     @action(detail=True, methods=['post'])
+    @method_decorator(csrf_exempt)
     def book(self, request, slug=None):
         """預約邀請"""
         try:
             invitation = get_object_or_404(MassageInvitation, slug=slug)
             
-            # 檢查邀請是否仍然有效
-            now = timezone.now()
-            if not (invitation.start_time <= now <= invitation.end_time):
+            # 檢查是否已經有人預約了（先搶先贏）
+            existing_reservation = Reservation.objects.filter(
+                massage_plan=invitation.massage_plan,
+                therapist=invitation.therapist,
+                appointment_time__gte=invitation.start_time,
+                appointment_time__lte=invitation.end_time,
+            ).exists()
+            
+            if existing_reservation:
                 return Response(
-                    {"error": "邀請已過期或尚未開始"},
+                    {"error": "此優惠已被預約"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -254,21 +277,46 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # 檢查預約時間是否在可預約範圍內
             if not (invitation.start_time <= appointment_datetime <= invitation.end_time):
                 return Response(
-                    {"error": "預約時間必須在邀請時間範圍內"},
+                    {"error": "預約時間必須在可預約時段內"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 檢查師傅在該時間是否已有預約
-            existing_reservation = Reservation.objects.filter(
+            # 檢查是否有足夠時間完成服務
+            service_end_time = appointment_datetime + timedelta(minutes=invitation.massage_plan.duration)
+            if service_end_time > invitation.end_time:
+                return Response(
+                    {"error": "預約時間加上服務時長超出可預約時段"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 檢查現在時間是否已經過了可預約時間
+            now = timezone.now()
+            last_bookable_time = invitation.end_time - timedelta(minutes=invitation.massage_plan.duration)
+            if now > last_bookable_time:
+                return Response(
+                    {"error": "優惠已過期，無法預約"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 檢查預約時間是否在未來
+            if appointment_datetime <= now:
+                return Response(
+                    {"error": "預約時間必須是未來時間"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 再次檢查是否有衝突（防止同時預約）
+            existing_conflict = Reservation.objects.filter(
                 therapist=invitation.therapist,
                 appointment_time=appointment_datetime
             ).exists()
             
-            if existing_reservation:
+            if existing_conflict:
                 return Response(
-                    {"error": "該時間段已被預約"},
+                    {"error": "該時段已被預約"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -279,7 +327,9 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                 customer_phone=customer_phone.strip(),
                 appointment_time=appointment_datetime,
                 massage_plan=invitation.massage_plan,
-                therapist=invitation.therapist
+                therapist=invitation.therapist,
+                # 可以加入關聯到邀請的欄位
+                notes=f"透過優惠邀請預約 (原價: {invitation.massage_plan.price}, 優惠價: {invitation.discount_price})"
             )
             
             # 回傳預約資訊
@@ -287,7 +337,7 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
                 "message": "預約成功",
                 "reservation_id": reservation.id,
                 "customer_name": reservation.customer_name,
-                "appointment_time": reservation.appointment_time,
+                "appointment_time": reservation.appointment_time.isoformat(),
                 "massage_plan": reservation.massage_plan.name,
                 "therapist": reservation.therapist.name,
                 "original_price": float(invitation.massage_plan.price),
@@ -299,4 +349,9 @@ class PublicMassageInvitationViewSet(viewsets.GenericViewSet):
             return Response(
                 {"error": "邀請不存在"},
                 status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"預約失敗: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

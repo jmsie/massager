@@ -33,7 +33,7 @@ urlpatterns = [
     path('review/<int:therapist_id>/', public_review_therapist, name='public_review_therapist'),
     path('invitation/<uuid:slug>/', public_massage_invitation, name='public_massage_invitation'),
 
- # Public API (CSRF exempt)
+    # Public API (CSRF exempt)
     path('api/public-reviews/', public_submit_review, name='public_submit_review'),
 
     # API URLs

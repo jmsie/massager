@@ -139,9 +139,10 @@ class Reservation(models.Model):
         blank=True,
         null=True
     )
+    notes = models.TextField(blank=True, null=True, verbose_name="備註")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
-
+    
     class Meta:
         verbose_name = "預約"
         verbose_name_plural = "預約"
