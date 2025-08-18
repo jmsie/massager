@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from ..models import ServiceSurvey, Therapist
+from ..models import Therapist, ServiceSurvey, MassagePlan
 
 
 @ensure_csrf_cookie
@@ -51,3 +51,23 @@ def manage_surveys(request):
             'therapists': therapists
         }
     )
+
+@ensure_csrf_cookie
+@login_required
+def manage_massage_plans(request):
+    """按摩方案管理頁面"""
+    store = getattr(request.user, "store", None)
+    if store:
+        massage_plans = MassagePlan.objects.filter(
+            store=store
+        ).order_by('-created_at')
+    else:
+        massage_plans = MassagePlan.objects.none()
+    
+    return render(
+        request,
+        'panel/manage_massage_plans.html',
+        {'massage_plans': massage_plans}
+    )
+
+

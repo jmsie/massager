@@ -87,3 +87,29 @@ class ServiceSurvey(models.Model):
 
     def __str__(self):
         return f'{self.therapist} - {self.rating} 星'
+
+class MassagePlan(models.Model):
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name="massage_plans",
+        verbose_name="店家"
+    )
+    name = models.CharField(max_length=255, verbose_name="方案名稱")
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="方案價格"
+    )
+    duration = models.PositiveIntegerField(verbose_name="時間長度（分鐘）")
+    notes = models.TextField(blank=True, null=True, verbose_name="備註")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "按摩方案"
+        verbose_name_plural = "按摩方案"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.store.name})"

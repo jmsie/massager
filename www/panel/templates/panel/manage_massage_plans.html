@@ -1,0 +1,993 @@
+{% extends 'panel/base.html' %}
+
+{% block title %}管理按摩方案{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plans-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #333;
+        margin: 0;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+    
+    .btn-edit {
+        background: #28a745;
+        color: white;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .btn-edit:hover {
+        background: #218838;
+        transform: translateY(-1px);
+    }
+    
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+        padding: 6px 12px;
+        font-size: 12px;
+        margin-left: 5px;
+    }
+    
+    .btn-delete:hover {
+        background: #c82333;
+        transform: translateY(-1px);
+    }
+    
+    .plans-table {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+    
+    .table th {
+        background: #343a40;
+        color: white;
+        font-weight: 600;
+        text-align: left;
+        padding: 16px;
+        border: none;
+    }
+    
+    .table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #eee;
+        vertical-align: middle;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9ff;
+    }
+    
+    .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .actions {
+        white-space: nowrap;
+    }
+    
+    .price-cell {
+        font-weight: 600;
+        color: #28a745;
+        font-size: 16px;
+    }
+    
+    .duration-cell {
+        color: #007bff;
+        font-weight: 500;
+    }
+    
+    .plan-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .notes-cell {
+        max-width: 200px;
+        word-wrap: break-word;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .notes-empty {
+        color: #999;
+        font-style: italic;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        transform: scale(0.9);
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .modal.show .modal-content {
+        transform: scale(1);
+        opacity: 1;
+    }
+    
+    .modal-header {
+        background: #343a40;
+        color: white;
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .close {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background-color 0.3s ease;
+    }
+    
+    .close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .modal-body {
+        padding: 30px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    .form-control.textarea {
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .form-col {
+        flex: 1;
+    }
+    
+    .input-group {
+        position: relative;
+    }
+    
+    .input-group-text {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+        font-size: 14px;
+        pointer-events: none;
+    }
+    
+    .modal-footer {
+        padding: 20px 30px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .no-data svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    
+    /* Search and Filter Section */
+    .filters-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .filters-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    
+    .filters-row {
+        display: flex;
+        gap: 15px;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .filter-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .filter-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .plans-container {
+            padding: 10px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+        
+        .filters-row {
+            flex-direction: column;
+        }
+        
+        .filter-group {
+            min-width: unset;
+        }
+        
+        .form-row {
+            flex-direction: column;
+        }
+        
+        .table th,
+        .table td {
+            padding: 10px 8px;
+            font-size: 14px;
+        }
+        
+        .modal-content {
+            margin: 10% auto;
+            width: 95%;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .notes-cell {
+            max-width: 150px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .table th:nth-child(4),
+        .table td:nth-child(4) {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="plans-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">按摩方案管理</h1>
+        <button class="btn btn-primary" onclick="openModal('add')">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            </svg>
+            新增方案
+        </button>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <h3 class="filters-title">搜尋與篩選</h3>
+        <div class="filters-row">
+            <div class="filter-group">
+                <label class="filter-label" for="searchInput">方案名稱</label>
+                <input type="text" class="filter-input" id="searchInput" placeholder="搜尋方案名稱..." onkeyup="filterPlans()">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="minPriceInput">最低價格</label>
+                <input type="number" class="filter-input" id="minPriceInput" placeholder="0" min="0" onchange="filterPlans()">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="maxPriceInput">最高價格</label>
+                <input type="number" class="filter-input" id="maxPriceInput" placeholder="無限制" min="0" onchange="filterPlans()">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="durationFilter">時間長度</label>
+                <select class="filter-input" id="durationFilter" onchange="filterPlans()">
+                    <option value="">全部時間</option>
+                    <option value="30">30分鐘以下</option>
+                    <option value="60">30-60分鐘</option>
+                    <option value="90">60-90分鐘</option>
+                    <option value="120">90-120分鐘</option>
+                    <option value="120+">120分鐘以上</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button class="btn btn-secondary" onclick="clearFilters()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+                    </svg>
+                    清除篩選
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plans Table -->
+    <div class="plans-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>方案名稱</th>
+                    <th>價格</th>
+                    <th>時間長度</th>
+                    <th>備註</th>
+                    <th>建立時間</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="plansTableBody">
+                {% for plan in massage_plans %}
+                <tr data-name="{{ plan.name|lower }}" data-price="{{ plan.price }}" data-duration="{{ plan.duration }}">
+                    <td>
+                        <span class="plan-name">{{ plan.name }}</span>
+                    </td>
+                    <td class="price-cell">
+                        ${{ plan.price|floatformat:0 }}
+                    </td>
+                    <td class="duration-cell">
+                        {{ plan.duration }} 分鐘
+                    </td>
+                    <td class="notes-cell">
+                        {% if plan.notes %}
+                            {{ plan.notes|truncatechars:50 }}
+                        {% else %}
+                            <span class="notes-empty">無備註</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ plan.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editPlan({{ plan.id }}, '{{ plan.name|escapejs }}', {{ plan.price }}, {{ plan.duration }}, '{{ plan.notes|default:""|escapejs }}')">
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L9.708 9H9a.5.5 0 0 1-.5-.5v-.708l5.146-5.146z"/>
+                                <path fill-rule="evenodd" d="M3 5a2 2 0 0 1 2-2h1.586l2 2H5a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9.414l2-2V11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5z"/>
+                            </svg>
+                            編輯
+                        </button>
+                        <button class="btn btn-delete" onclick="deletePlan({{ plan.id }}, '{{ plan.name|escapejs }}')">
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                            </svg>
+                            刪除
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr id="noDataRow">
+                    <td colspan="6" class="no-data">
+                        <svg fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                        </svg>
+                        <div>目前還沒有按摩方案</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Plan Modal -->
+<div id="planModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">新增按摩方案</h2>
+            <button class="close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="planForm">
+                {% csrf_token %}
+                <input type="hidden" id="planId" name="id">
+                
+                <div class="form-group">
+                    <label class="form-label" for="name">方案名稱 *</label>
+                    <input type="text" class="form-control" id="name" name="name" required placeholder="例如：全身舒壓按摩">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label class="form-label" for="price">價格 *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="price" name="price" required min="1" step="1" placeholder="1500">
+                                <span class="input-group-text">元</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label class="form-label" for="duration">時間長度 *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="duration" name="duration" required min="1" step="1" placeholder="90">
+                                <span class="input-group-text">分鐘</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="notes">備註</label>
+                    <textarea class="form-control textarea" id="notes" name="notes" placeholder="方案說明、包含項目、注意事項等..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button type="button" class="btn btn-primary" onclick="savePlan()">儲存</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// CSRF Token helper function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Modal management
+let isEditMode = false;
+let currentPlanId = null;
+
+function openModal(mode) {
+    const modal = document.getElementById('planModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const form = document.getElementById('planForm');
+    
+    if (mode === 'add') {
+        modalTitle.textContent = '新增按摩方案';
+        form.reset();
+        isEditMode = false;
+        currentPlanId = null;
+        document.getElementById('planId').value = '';
+    }
+    
+    modal.style.display = 'block';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+    
+    // Focus on first input
+    document.getElementById('name').focus();
+}
+
+function closeModal() {
+    const modal = document.getElementById('planModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+function editPlan(id, name, price, duration, notes) {
+    const modal = document.getElementById('planModal');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    modalTitle.textContent = '編輯按摩方案';
+    
+    // Fill form with existing data
+    document.getElementById('planId').value = id;
+    document.getElementById('name').value = name || '';
+    document.getElementById('price').value = price || '';
+    document.getElementById('duration').value = duration || '';
+    document.getElementById('notes').value = notes || '';
+    
+    isEditMode = true;
+    currentPlanId = id;
+    
+    modal.style.display = 'block';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+    
+    // Focus on name input
+    document.getElementById('name').focus();
+}
+
+function showLoading(button) {
+    button.disabled = true;
+    const originalText = button.innerHTML;
+    button.setAttribute('data-original-text', originalText);
+    button.innerHTML = '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 處理中...';
+}
+
+function hideLoading(button) {
+    button.disabled = false;
+    const originalText = button.getAttribute('data-original-text');
+    button.innerHTML = originalText || '儲存';
+}
+
+function savePlan() {
+    const form = document.getElementById('planForm');
+    const saveButton = document.querySelector('.modal-footer .btn-primary');
+    
+    // Validate form
+    const nameInput = document.getElementById('name');
+    const priceInput = document.getElementById('price');
+    const durationInput = document.getElementById('duration');
+    
+    if (!nameInput.value.trim()) {
+        alert('請輸入方案名稱');
+        nameInput.focus();
+        return;
+    }
+    
+    if (!priceInput.value || priceInput.value <= 0) {
+        alert('請輸入有效的價格');
+        priceInput.focus();
+        return;
+    }
+    
+    if (!durationInput.value || durationInput.value <= 0) {
+        alert('請輸入有效的時間長度');
+        durationInput.focus();
+        return;
+    }
+    
+    showLoading(saveButton);
+    
+    const formData = new FormData(form);
+    
+    const data = {
+        name: formData.get('name').trim(),
+        price: parseFloat(formData.get('price')),
+        duration: parseInt(formData.get('duration')),
+        notes: formData.get('notes').trim()
+    };
+
+    const url = isEditMode 
+        ? `/api/massage-plans/${currentPlanId}/`
+        : '/api/massage-plans/';
+    
+    const method = isEditMode ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        return response.text().then(text => {
+            throw new Error(`HTTP ${response.status}: ${text}`);
+        });
+    })
+    .then(data => {
+        hideLoading(saveButton);
+        closeModal();
+        showSuccessMessage(isEditMode ? '更新成功！' : '新增成功！');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        hideLoading(saveButton);
+        alert('儲存失敗：' + error.message);
+    });
+}
+
+function deletePlan(id, name) {
+    const confirmMessage = `確定要刪除方案 "${name}" 嗎？\n\n此操作無法復原！`;
+    
+    if (confirm(confirmMessage)) {
+        fetch(`/api/massage-plans/${id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.text().then(text => {
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        })
+        .then(data => {
+            showSuccessMessage('刪除成功！');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('刪除失敗：' + error.message);
+        });
+    }
+}
+
+// Filter and Search Functions
+function filterPlans() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const minPrice = parseFloat(document.getElementById('minPriceInput').value) || 0;
+    const maxPrice = parseFloat(document.getElementById('maxPriceInput').value) || Infinity;
+    const durationFilter = document.getElementById('durationFilter').value;
+    
+    const rows = document.querySelectorAll('#plansTableBody tr[data-name]');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name');
+        const price = parseFloat(row.getAttribute('data-price'));
+        const duration = parseInt(row.getAttribute('data-duration'));
+        
+        let show = true;
+        
+        // Name filter
+        if (searchInput && !name.includes(searchInput)) {
+            show = false;
+        }
+        
+        // Price filter
+        if (price < minPrice || price > maxPrice) {
+            show = false;
+        }
+        
+        // Duration filter
+        if (durationFilter) {
+            switch (durationFilter) {
+                case '30':
+                    if (duration > 30) show = false;
+                    break;
+                case '60':
+                    if (duration <= 30 || duration > 60) show = false;
+                    break;
+                case '90':
+                    if (duration <= 60 || duration > 90) show = false;
+                    break;
+                case '120':
+                    if (duration <= 90 || duration > 120) show = false;
+                    break;
+                case '120+':
+                    if (duration <= 120) show = false;
+                    break;
+            }
+        }
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+    
+    // Show/hide no data message
+    const noDataRow = document.getElementById('noDataRow');
+    if (noDataRow) {
+        if (visibleCount === 0 && rows.length > 0) {
+            noDataRow.style.display = '';
+            noDataRow.children[0].innerHTML = `
+                <svg fill="currentColor" viewBox="0 0 16 16" style="width: 64px; height: 64px; margin-bottom: 15px; opacity: 0.5;">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
+                <div>找不到符合條件的方案</div>
+            `;
+        } else {
+            noDataRow.style.display = 'none';
+        }
+    }
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('minPriceInput').value = '';
+    document.getElementById('maxPriceInput').value = '';
+    document.getElementById('durationFilter').value = '';
+    filterPlans();
+}
+
+function showSuccessMessage(message) {
+    // Create success toast
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        z-index: 1001;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    toast.innerHTML = `
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+        </svg>
+        ${message}
+    `;
+    
+    // Add animation styles if not already added
+    if (!document.querySelector('style[data-toast-animations]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-toast-animations', 'true');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            .animate-spin {
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('planModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    // Form submission with Enter key (except for textarea)
+    const form = document.getElementById('planForm');
+    if (form) {
+        form.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey && event.target.tagName !== 'TEXTAREA') {
+                event.preventDefault();
+                savePlan();
+            }
+        });
+    }
+
+    // Input validation
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.style.borderColor = '#e0e0e0';
+            }
+        });
+    }
+
+    const priceInput = document.getElementById('price');
+    if (priceInput) {
+        priceInput.addEventListener('input', function() {
+            if (this.value > 0) {
+                this.style.borderColor = '#e0e0e0';
+            }
+        });
+    }
+
+    const durationInput = document.getElementById('duration');
+    if (durationInput) {
+        durationInput.addEventListener('input', function() {
+            if (this.value > 0) {
+                this.style.borderColor = '#e0e0e0';
+            }
+        });
+    }
+
+    // Real-time search as user types
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterPlans, 300);
+        });
+    }
+});
+</script>
+{% endblock %}

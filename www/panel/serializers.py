@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Therapist, ServiceSurvey
+from .models import MassagePlan, Therapist, ServiceSurvey
 
 
 class TherapistSerializer(serializers.ModelSerializer):
@@ -61,3 +61,49 @@ class ServiceSurveySerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("師傅不屬於您的店家")
                 
         return value
+    
+class MassagePlanSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    
+    class Meta:
+        model = MassagePlan
+        fields = ['id', 'name', 'price', 'duration', 'notes', 'store', 'store_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'store', 'store_name', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        """驗證方案名稱不能為空"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("方案名稱不能為空")
+        return value.strip()
+
+    def validate_price(self, value):
+        """驗證價格必須大於 0"""
+        if value <= 0:
+            raise serializers.ValidationError("價格必須大於 0")
+        return value
+
+    def validate_duration(self, value):
+        """驗證時間長度必須大於 0"""
+        if value <= 0:
+            raise serializers.ValidationError("時間長度必須大於 0 分鐘")
+        return value
+
+    def validate(self, data):
+        """額外的跨欄位驗證"""
+        # 檢查同一店家是否已有相同名稱的方案
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            store = getattr(request.user, "store", None)
+            if store:
+                name = data.get('name')
+                existing_plan = MassagePlan.objects.filter(
+                    store=store, 
+                    name=name
+                ).exclude(id=self.instance.id if self.instance else None)
+                
+                if existing_plan.exists():
+                    raise serializers.ValidationError({
+                        'name': '該店家已存在相同名稱的方案'
+                    })
+        
+        return data    
