@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from uuid import uuid4
 
 User = get_user_model()
 
@@ -148,3 +149,48 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"{self.customer_name} - {self.appointment_time} ({self.store.name})"
+
+class MassageInvitation(models.Model):
+    start_time = models.DateTimeField(verbose_name="開始時間")
+    end_time = models.DateTimeField(verbose_name="結束時間")
+    massage_plan = models.ForeignKey(
+        MassagePlan,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+        verbose_name="按摩方案"
+    )
+    therapist = models.ForeignKey(
+        Therapist,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+        verbose_name="師傅"
+    )
+    discount_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="特價"
+    )
+    slug = models.UUIDField(
+        default=uuid4,
+        unique=True,
+        editable=False,
+        verbose_name="網址slug"
+    )
+    click_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="多少人點開"
+    )
+    notes = models.TextField(blank=True, null=True, verbose_name="備註")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "按摩邀請"
+        verbose_name_plural = "按摩邀請"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return (
+            f"{self.massage_plan.name} - {self.therapist.name} "
+            f"({self.start_time} 至 {self.end_time})"
+        )

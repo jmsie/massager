@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from ..models import Therapist, ServiceSurvey, MassagePlan, Reservation
+from ..models import Therapist, ServiceSurvey, MassagePlan, Reservation, MassageInvitation
 
 
 @ensure_csrf_cookie
@@ -100,6 +100,40 @@ def manage_reservations(request):
         'panel/manage_reservations.html',
         {
             'reservations': reservations,
+            'therapists': therapists,
+            'massage_plans': massage_plans
+        }
+    )
+
+@ensure_csrf_cookie
+@login_required
+def manage_invitations(request):
+    """邀請管理頁面"""
+    store = getattr(request.user, "store", None)
+    if store:
+        invitations = MassageInvitation.objects.filter(
+            massage_plan__store=store
+        ).select_related('massage_plan', 'therapist').order_by('-created_at')
+        
+        # 取得師傅和方案列表供篩選使用
+        therapists = Therapist.objects.filter(
+            store=store, 
+            is_deleted=False
+        ).order_by('name')
+        
+        massage_plans = MassagePlan.objects.filter(
+            store=store
+        ).order_by('name')
+    else:
+        invitations = MassageInvitation.objects.none()
+        therapists = Therapist.objects.none()
+        massage_plans = MassagePlan.objects.none()
+    
+    return render(
+        request,
+        'panel/manage_invitations.html',
+        {
+            'invitations': invitations,
             'therapists': therapists,
             'massage_plans': massage_plans
         }

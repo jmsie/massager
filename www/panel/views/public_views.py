@@ -4,7 +4,7 @@ from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_http_methods
 import json
 
-from ..models import Therapist, Store, ServiceSurvey
+from ..models import Therapist, Store, ServiceSurvey, MassageInvitation
 
 
 @ensure_csrf_cookie
@@ -100,3 +100,34 @@ def public_submit_review(request):
             {'error': f'伺服器錯誤: {str(e)}'}, 
             status=500
         )
+
+
+@ensure_csrf_cookie
+def public_massage_invitation(request, slug):
+    """客人查看按摩邀請的公開頁面"""
+    try:
+        invitation = get_object_or_404(MassageInvitation, slug=slug)
+        
+        # 增加點擊次數
+        invitation.click_count += 1
+        invitation.save(update_fields=['click_count'])
+        
+        context = {
+            'invitation': invitation,
+            'store': invitation.massage_plan.store,
+        }
+        
+        return render(request, 'panel/public_invitation.html', context)
+        
+    except MassageInvitation.DoesNotExist:
+        raise Http404("找不到指定的邀請")
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def public_submit_booking(request):
+    """公開預約邀請的 API 端點"""
+    # 這個功能已經在 PublicMassageInvitationViewSet 中實現
+    # 這裡保留作為備用端點
+    pass
+
