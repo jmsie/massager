@@ -113,3 +113,38 @@ class MassagePlan(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.store.name})"
+
+class Reservation(models.Model):
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+        verbose_name="店家"
+    )
+    customer_name = models.CharField(max_length=255, verbose_name="客戶姓名")
+    customer_phone = models.CharField(max_length=20, verbose_name="客戶電話")
+    appointment_time = models.DateTimeField(verbose_name="預約時間")
+    massage_plan = models.ForeignKey(
+        MassagePlan,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+        verbose_name="預約的方案"
+    )
+    therapist = models.ForeignKey(
+        Therapist,
+        on_delete=models.SET_NULL,
+        related_name="reservations",
+        verbose_name="指定的師傅",
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
+
+    class Meta:
+        verbose_name = "預約"
+        verbose_name_plural = "預約"
+        ordering = ['-appointment_time']
+
+    def __str__(self):
+        return f"{self.customer_name} - {self.appointment_time} ({self.store.name})"
